@@ -13,7 +13,7 @@ Variables:
  - ec2_ secret and ec2_ key are required variables to access aws but you also set them via env vars
 
 Files:
- - user\password pairs that are used to secure connection between you and webdav-server are located row by row and space separated in file roles/mysql/files/users
+ - file roles/mysql/files/users consist of space separated user\password pairs that are used to secure connection between you and webdav-server
 
 Prerequisites:
  - Manually created elastic IP in AWS
