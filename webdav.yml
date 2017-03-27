@@ -1,0 +1,33 @@
+- name: Create AWS instance
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  remote_user: ubuntu
+  roles:
+    - aws_create
+
+- name: System tasks
+  hosts: webdav_project
+  become: yes
+  become_user: root
+  remote_user: ubuntu
+  gather_facts: no
+  roles:
+    - systemtasks
+
+- name: install Apache
+  hosts: webdav_project
+  become: yes
+  become_user: root
+  remote_user: ubuntu
+  roles:
+    - apache
+
+- name: install Mysql
+  hosts: webdav_project
+  become: yes
+  become_user: root
+  remote_user: ubuntu
+  roles:
+    - mysql
+

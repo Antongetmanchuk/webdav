@@ -1,0 +1,21 @@
+- name: Wait for cloud-init to finish because of locking /var/lib/apt/*  
+  script: wait.sh
+
+- name: Install python 2.x
+  script: python.sh creates=/root/.ansible_python_installed
+
+
+#- name: set system hostname
+#  hostname:
+#    name: "{{ dns_name }}"
+
+#- name: Add wait script
+#  copy: src=wait.sh dest=/tmp/wait.sh owner=ubuntu group=ubuntu mode=744
+
+#- name: Wait for cloud-init to finish because of locking /var/lib/apt/*
+#  command: /tmp/wait.sh
+
+#- name: Cleanup
+#  file:
+#    state: absent
+#    path: "/tmp/wait.sh"

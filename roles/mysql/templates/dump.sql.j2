@@ -1,0 +1,18 @@
+/*!40101 SET NAMES utf8 */;
+DROP USER IF EXISTS '{{dbd_user}}'@'localhost';
+CREATE USER '{{dbd_user}}'@'localhost' IDENTIFIED BY '{{dbd_password}}';
+GRANT ALL PRIVILEGES ON webdav . * TO '{{dbd_user}}'@'localhost';
+FLUSH PRIVILEGES;
+
+DROP TABLE IF EXISTS `{{dbd_tablename}}`;
+
+CREATE TABLE `{{dbd_tablename}}` (
+  `id` int(11) unsigned NOT NULL auto_increment,
+  `user` varchar(255) default NULL,
+  `password` varchar(255) default NULL,
+  PRIMARY KEY  (`id`)
+) DEFAULT CHARSET=utf8;
+
+{% for iterable in hash_content.results %}
+INSERT INTO  password (id, user, password) VALUES ({{loop.index}}, '{{iterable.item[0]}}', '{{iterable.stdout}}');
+{% endfor%}

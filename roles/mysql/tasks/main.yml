@@ -1,0 +1,120 @@
+---
+- name: Install the MySQL packages
+  apt:
+    name: mysql-server
+    state: installed
+    update_cache: yes
+  register: mysqlinstalled
+
+- name: Install the MySQL packages
+  apt:
+    name: python-mysqldb
+    state: installed
+    update_cache: yes
+  register: mysqlinstalled
+
+
+- name: set root password, if it is empty now
+  when: mysqlinstalled|success
+  mysql_user: 
+    login_user: root 
+    login_password: '{{item}}'
+    login_host: localhost 
+    name: root 
+    password: '{{mysql_root_pass}}' 
+    state: present
+  with_items:
+    - '{{mysql_root_pass}}'
+    - ''
+  register: rootset
+  ignore_errors: True
+
+- name: Update MySQL root password for all root accounts
+  when: mysqlinstalled|success
+  mysql_user:
+    login_password: "{{ mysql_root_pass }}" 
+    login_user: root
+    login_host: localhost
+    name: root
+    host: "{{ item }}"
+    password: "{{ mysql_root_pass }}"
+    state: present
+  with_items:
+    - "{{ ansible_hostname }}"
+    - 127.0.0.1
+    - ::1
+    - localhost
+  register: rootpassupdated
+
+- name: Ensure Anonymous user(s) are not in the database
+  when: rootpassupdated|success
+  mysql_user:
+    name: ''
+    host: "{{ item }}"
+    state: absent
+    login_password: "{{ mysql_root_pass }}" 
+    login_user: root
+  with_items:
+    - localhost
+    - "{{ ansible_hostname }}"
+
+- name: Remove the test database
+  mysql_db:
+    name: test
+    state: absent
+    login_password: "{{ mysql_root_pass }}" 
+    login_user: root
+  notify:
+    - Restart MySQL 
+
+- name: Create database for storing user\pass for webdav
+  mysql_db: 
+    name: "{{dbd_dbname}}"
+    login_host: localhost 
+    login_user: root 
+    login_password: "{{ mysql_root_pass }}" 
+    state: present
+
+- name: Loop over lines in a file to result_echo
+  debug:
+    var: item
+  with_lines: cat "roles/mysql/files/users"
+  register: result_echo
+
+- name: loop over lines to get user and password lists
+  set_fact:
+    user_list: "{{user_list|default([]) + [ item.item.split(' ')[0]] }}"
+    password_list: "{{password_list|default([]) + [ item.item.split(' ')[1]] }}"
+  with_items: "{{ result_echo.results }}"
+  register: userpasslistiscreated
+  when: result_echo|success
+
+- name: Generate bcrypt password hashes
+  when: userpasslistiscreated|success
+  shell: "htpasswd -bBn {{item[0]}} {{item[1]}} | cut -f2- -d:"
+  register: hash_content
+  with_together:
+    - "{{ user_list }}"
+    - "{{ password_list }}"
+
+- name: Generate and put dump.sql on host
+  template: src=dump.sql.j2 dest=/tmp/dump.sql
+  register: dumpcopied
+
+- name: Run SQL commands against DB to create table with user\pass
+  when: dumpcopied|success
+  mysql_db:
+    login_host: localhost
+    login_password: "{{ mysql_root_pass }}"
+    login_user: root
+    name: "{{dbd_dbname}}"
+    state: import
+    target: "/tmp/dump.sql"
+  register: dumpisimported
+
+- name: rm dump.sql
+  file:
+    state: absent
+    path: "/tmp/dump.sql"
+  when: dumpisimported|success
+

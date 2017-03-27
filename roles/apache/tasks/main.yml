@@ -1,0 +1,76 @@
+---
+- name: Install Apache2
+  apt: pkg=apache2 state=installed update_cache=true
+  register: apache2installed
+
+- name: Install dbd package
+  apt: pkg=libaprutil1-dbd-mysql state=installed update_cache=true
+  register: dbdinstalled
+  notify:
+    - Start Apache2
+  when: apache2installed
+
+- name: Enable dav module
+  when: dbdinstalled|success
+  command: a2enmod dav
+
+- name: Enable dav_fs module
+  when: dbdinstalled|success
+  command: a2enmod dav_fs
+
+- name: Create DavLock file
+  when: dbdinstalled|success
+  copy: src=DavLock dest=/var/www/DavLock owner=www-data group=www-data
+
+- name: Create WebDAV folder
+  when: apache2installed|success
+  file: dest=/home/webdav mode=755 state=directory owner=www-data group=www-data recurse=yes
+  register: webdavfoldercreated
+
+- name: put test file
+  copy: src=The_Shadow_of_Your_Smile.gp5 dest=/home/webdav/The_Shadow_of_Your_Smile.gp5 owner=www-data group=www-data
+  when: webdavfoldercreated|success
+
+- name: Install Apache2-utils
+  apt: pkg=apache2-utils state=installed update_cache=true
+  register: utilsinstalled
+
+- name: Generate user password
+  when: utilsinstalled|success
+  command: echo 123
+  register: passgenerated
+
+- name: Add Apache2 config
+  when: passgenerated|success
+  template: src=apache.conf.j2 dest=/etc/apache2/apache2.conf owner=root group=root
+
+- name: Add apache2 webdav virtualhost
+  template: src=webdav.conf.j2 dest=/etc/apache2/sites-available/webdav.conf owner=root group=root
+  register: apacheconfigcopied
+
+- name: Add apache2 ports.conf
+  template: src=ports.conf.j2 dest=/etc/apache2/ports.conf owner=root group=root
+  register: apacheportscopied
+
+- name: Enable webdav site config
+  when: apacheconfigcopied|success
+  command: a2ensite webdav.conf
+
+- name: Add dbd config
+  when: passgenerated|success
+  template: src=dbd_mysql.conf.j2 dest=/etc/apache2/conf-available/dbd_mysql.conf owner=root group=root
+  register: dbdconfigured
+
+- name: Enable dbd_mysql conf
+  when: dbdconfigured|success
+  command: a2enconf dbd_mysql
+
+- name: Enable dbd module
+  when: passgenerated|success
+  command: a2enmod dbd
+
+- name: Enable authn_dbd module
+  when: passgenerated|success
+  command: a2enmod authn_dbd
+  notify:
+  - Reload Apache2

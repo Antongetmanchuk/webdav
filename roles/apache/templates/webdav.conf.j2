@@ -1,0 +1,28 @@
+NameVirtualHost *
+<VirtualHost *:{{webdav_port}}>
+ServerAdmin webmaster@domain
+DocumentRoot /home/webdav/
+
+<Directory /home/webdav/>
+Options Indexes MultiViews
+AllowOverride None
+Order allow,deny
+allow from all
+</Directory>
+
+</VirtualHost>
+
+Alias /webdav /home/webdav
+
+<Location /webdav>
+Options Indexes MultiViews
+AllowOverride None
+Order allow,deny
+allow from all
+AuthName "You Must Login"
+AuthType Basic
+AuthBasicProvider dbd
+AuthDBDUserPWQuery "SELECT password AS password FROM password WHERE user = %s"
+Require valid-user
+DAV On
+</Location>
