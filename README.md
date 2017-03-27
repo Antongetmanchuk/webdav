@@ -1,9 +1,9 @@
 Webdav project
-Abstract
- First experience of using ansible and aws all together
- Starts one instance in aws with apache2 and webdav configured using mysql auth
- url to access is http://dns_name:webdav_port/webdav
- ami is aws Ubuntu 16.04
+Abstract:
+ - First experience of using ansible and aws all together
+ - Starts one instance in aws with apache2 and webdav configured using mysql auth
+ - url to access is http://dns_name:webdav_port/webdav
+ - ami is aws Ubuntu 16.04
 
 Variables:
  - Inventory file includes several important variables
